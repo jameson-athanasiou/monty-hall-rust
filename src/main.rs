@@ -32,7 +32,8 @@ impl Results {
 
 struct Door {
     is_gold: bool,
-    selected: bool,
+    selected_1: bool,
+    selected_2: bool,
     opened: bool
 }
 
@@ -40,7 +41,8 @@ impl Door {
     fn new() -> Door {
         Door {
             is_gold: false,
-            selected: false,
+            selected_1: false,
+            selected_2: false,
             opened: false
         }
     }
@@ -49,8 +51,12 @@ impl Door {
         self.is_gold = true;
     }
 
-    fn select(&mut self) {
-        self.selected = true;
+    fn select_initial(&mut self) {
+        self.selected_1 = true;
+    }
+
+    fn select_second(&mut self) {
+        self.selected_2 = true;
     }
 
     fn open(&mut self) {
@@ -60,7 +66,7 @@ impl Door {
 
 impl std::fmt::Display for Door {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Gold: {} | Selected: {} | Open: {}",  self.is_gold, self.selected, self.opened)
+        write!(f, "Gold: {} | Initially Selected: {} | Finally Selected: {} | Open: {}",  self.is_gold, self.selected_1, self.selected_2, self.opened)
     }
 }
 
@@ -93,6 +99,22 @@ fn build_doors() -> Vec<Door> {
     doors
 }
 
+fn pick_random_door_number(doors: &Vec<Door>) -> usize {
+    let mut rng = rand::thread_rng();
+    let selected_door_number = rng.gen_range(0..doors.len()); 
+
+    selected_door_number
+}
+
+fn open_doors(doors: &mut Vec<Door>) {
+    for door in doors.iter_mut() {
+        if !door.selected_1 && !door.is_gold {
+            door.open();
+        }
+    }
+}
+
+
 fn main() {
     println!("Hello, world!");
 
@@ -100,22 +122,18 @@ fn main() {
 
     let mut doors = build_doors();
 
+    let selected_door_number = pick_random_door_number(&doors);
 
-    let mut rng = rand::thread_rng();
-    let selected_door_number = rng.gen_range(0..DOOR_COUNT); 
-
-    doors[selected_door_number].select();
+    doors[selected_door_number].select_initial();
 
     println!("{}", "Door selection ------------------------");
     print_doors(&doors);
 
-    for door in doors.iter() {
-        if door.is_gold && door.selected {
-            results.count_win_on_initial_selection()
-        }
-    }
 
+    open_doors(&mut doors);
 
-    
+    println!("{}", "Door opening ------------------------");
+    print_doors(&doors);
+
 
 }
