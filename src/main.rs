@@ -2,31 +2,24 @@ use rand::Rng;
 
 #[derive(Debug)]
 struct Results {
-    won: usize,
-    lost: usize,
-    won_on_initial_selection: usize
+    won_on_initial_selection: usize,
+    won_on_second_selection: usize
 }
 
 impl Results {
     fn new() -> Results {
         Results {
-            won: 0,
-            lost: 0,
-            won_on_initial_selection: 0
+            won_on_initial_selection: 0,
+            won_on_second_selection: 0
         }
     }
 
-    fn count_win(&mut self) {
-        self.won += 1;
-    }
-
-    fn count_loss(&mut self) {
-        self.lost += 1;
-    }
-
     fn count_win_on_initial_selection(&mut self) {
-        self.won += 1;
         self.won_on_initial_selection += 1;
+    }
+
+    fn count_win_on_second_selection(&mut self) {
+        self.won_on_second_selection += 1;
     }
 }
 
@@ -71,6 +64,8 @@ impl std::fmt::Display for Door {
 }
 
 const DOOR_COUNT: usize = 3;
+const IS_DEBUG: bool = false;
+const SIM_COUNT: i32 = 100000;
 
 fn print_doors(doors: &Vec<Door>) {
     for i in 0..doors.len() {
@@ -93,9 +88,6 @@ fn build_doors() -> Vec<Door> {
         doors.push(door);
     }
 
-    println!("{}", "Door init ------------------------");
-    print_doors(&doors);
-
     doors
 }
 
@@ -114,26 +106,79 @@ fn open_doors(doors: &mut Vec<Door>) {
     }
 }
 
+fn make_second_selection(doors: &mut Vec<Door>) {
+    for door in doors.iter_mut() {
+        if !door.selected_1 && !door.opened {
+            door.select_second()
+        }
+    }
+}
 
-fn main() {
-    println!("Hello, world!");
+fn is_initial_win(door: &Door) -> bool {
+    door.is_gold && door.selected_1
+}
 
-    let mut results = Results::new();
+fn is_second_attempt_win(door: &Door) -> bool {
+    door.is_gold && door.selected_2
+}
 
+fn update_results(doors: &Vec<Door>, results: &mut Results) {
+    let mut win_counted = false;
+
+    for door in doors.iter() {
+        if is_initial_win(&door) {
+            results.count_win_on_initial_selection();
+            win_counted = true;
+            break
+        }
+
+        if is_second_attempt_win(&door) {
+            results.count_win_on_second_selection();
+            win_counted = true;
+            break
+        }
+    }
+
+    if !win_counted {
+        panic!("you somehow lost both scenarios?");
+    }
+}
+
+fn print_door_status(doors: &Vec<Door>, title: &str) {
+    if IS_DEBUG {
+        println!("{} ------------------------", title);
+        print_doors(&doors);
+    }
+}
+
+fn play_game(results: &mut Results) {
     let mut doors = build_doors();
 
     let selected_door_number = pick_random_door_number(&doors);
 
     doors[selected_door_number].select_initial();
 
-    println!("{}", "Door selection ------------------------");
-    print_doors(&doors);
-
+    print_door_status(&doors, "Door Selection");
 
     open_doors(&mut doors);
 
-    println!("{}", "Door opening ------------------------");
-    print_doors(&doors);
+    print_door_status(&doors, "Initial Door Opening");
 
+    make_second_selection(&mut doors);
 
+    print_door_status(&doors, "Second Door Selection");
+
+    update_results(&doors, results);
+}
+
+fn main() {
+    println!("Simulating {} games...", SIM_COUNT);
+
+    let mut results = Results::new();
+
+    for _ in 0..SIM_COUNT {
+        play_game(&mut results);
+    }
+
+    println!("{:?}", results);
 }
